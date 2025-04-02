@@ -4,7 +4,7 @@
 passwd
 
 # Install additional packages, the kernel, and firmware
-pacman -S base-devel dosfstools grub efibootmgr lvm2 mtools neovim networkmanager os-prober sudo
+pacman -S base-devel dosfstools grub efibootmgr lvm2 mtools neovim networkmanager os-prober sof-firmware sudo
 pacman -S linux linux-headers linux-firmware
 pacman -S mesa intel-media-driver
 
