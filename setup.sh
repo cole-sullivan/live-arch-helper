@@ -1,5 +1,10 @@
 #!/bin/sh
 
+finalize() {
+        echo "All done! Provided there were no hidden errors, the script completed successfully. Your machine will reboot in 5 seconds."
+        sleep 5
+}
+
 # Partition disk
 (echo g; echo w) | fdisk /dev/nvme0n1
 (echo n; echo 1; echo ""; echo +1G; echo p; echo n; echo 2; echo ""; echo +1G; echo p; echo n; echo 3; echo ""; echo ""; echo t; echo 3; echo 44; echo p; echo w) | fdisk /dev/nvme0n1
@@ -39,3 +44,6 @@ arch-chroot /mnt sh root.sh
 
 # Unmount all partitions and exit live USB
 umount -a
+
+finalize
+reboot
