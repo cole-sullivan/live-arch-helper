@@ -33,10 +33,9 @@ pacstrap -i /mnt base
 genfstab -U -p /mnt >> /mnt/etc/fstab
 cat /mnt/etc/fstab
 
-# Enter system and run rest of script
-curl -LO https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/root.sh
-sh root.sh | arch-chroot /mnt
+# Enter system and finish setup
+arch-chroot /mnt curl -LO https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/root.sh
+arch-chroot /mnt sh root.sh
 
 # Unmount all partitions and exit live USB
 umount -a
-reboot
