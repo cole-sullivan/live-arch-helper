@@ -38,19 +38,19 @@ formatpartitions() {
 	done
 	whiptail --title "Format disk" \
 		--infobox "Formatting and encrypting $DISK." 8 70
-	mkfs.fat -F32 /dev/${DISK}p1 &>/dev/null
+	mkfs.fat -F32 /dev/${DISK}p1 >/dev/null
 	mkfs.ext4 -F /dev/${DISK}p2 &>/dev/null
-	echo -n "$PASSPHRASE1" | cryptsetup luksFormat /dev/${DISK}p3 -d - &>/dev/null
-	echo -n "$PASSPHRASE1" | cryptsetup open --type luks /dev/${DISK}p3 lvm -d - &>/dev/null
-	pvcreate /dev/mapper/lvm &>/dev/null
-	vgcreate volgroup0 /dev/mapper/lvm &>/dev/null
-	lvcreate -L 30GB volgroup0 -n lv_root &>/dev/null
-	lvcreate -l 100%FREE volgroup0 -n lv_home &>/dev/null
-	modprobe dm_mod &>/dev/null
-	vgscan &>/dev/null
-	vgchange -ay &>/dev/null
-	mkfs.ext4 /dev/volgroup0/lv_root &>/dev/null
-	mkfs.ext4 /dev/volgroup0/lv_home &>/dev/null
+	echo -n "$PASSPHRASE1" | cryptsetup luksFormat /dev/${DISK}p3 -d -
+	echo -n "$PASSPHRASE1" | cryptsetup open --type luks /dev/${DISK}p3 lvm -d -
+	pvcreate /dev/mapper/lvm >/dev/null
+	vgcreate volgroup0 /dev/mapper/lvm >/dev/null
+	lvcreate -L 30GB volgroup0 -n lv_root >/dev/null
+	lvcreate -l 100%FREE volgroup0 -n lv_home >/dev/null
+	modprobe dm_mod
+	vgscan >/dev/null
+	vgchange -ay >/dev/null
+	mkfs.ext4 -F /dev/volgroup0/lv_root &>/dev/null
+	mkfs.ext4 -F /dev/volgroup0/lv_home &>/dev/null
 }
 
 mountpartitions() {
