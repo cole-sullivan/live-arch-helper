@@ -145,36 +145,44 @@ installgpu || error "User exited."
 # Generate RAM disks
 whiptail --title "Configuring bootloader" \
 	--infobox "Setting up GRUB, the bootloader for this system." 8 70
-arch-chroot /mnt rm -f /etc/mkinitcpio.conf
-arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
-arch-chroot /mnt chmod 644 mkinitcpio.conf
-arch-chroot /mnt mv mkinitcpio.conf /etc/mkinitcpio.conf
-arch-chroot /mnt mkinitcpio -p linux &>/dev/null
+arch-chroot /mnt /bin/sh << EOF
+	rm -f /etc/mkinitcpio.conf
+	curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
+	chmod 644 mkinitcpio.conf
+	mv mkinitcpio.conf /etc/mkinitcpio.conf
+	mkinitcpio -p linux &>/dev/null
+EOF
 
 # Set locale
 whiptail --title "Setting locale" \
 	--infobox "Setting the system locale." 8 70
-arch-chroot /mnt rm -f /etc/locale.gen
-arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
-arch-chroot /mnt chmod 644 locale.gen
-arch-chroot /mnt mv locale.gen /etc/locale.gen
-arch-chroot /mnt locale-gen &>/dev/null
+arch-chroot /mnt /bin/sh << EOF
+	rm -f /etc/locale.gen
+	curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
+	chmod 644 locale.gen
+	mv locale.gen /etc/locale.gen
+	locale-gen &>/dev/null
+EOF
 
 # Set up GRUB
 whiptail --title "Setting up bootloader" \
 	--infobox "Configuring GRUB, the system bootloader, for use." 8 70
-arch-chroot /mnt rm -f /etc/default/grub
-arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/grub
-arch-chroot /mnt chmod 644 grub
-arch-chroot /mnt mv grub /etc/default/grub
-arch-chroot /mnt mkdir /boot/EFI
-arch-chroot /mnt mount /dev/${DISK}p1 /boot/EFI
-arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
-arch-chroot /mnt cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
-arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
+arch-chroot /mnt /bin/sh << EOF
+	rm -f /etc/default/grub
+	curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/grub
+	chmod 644 grub
+	mv grub /etc/default/grub
+	mkdir /boot/EFI
+	mount /dev/${DISK}p1 /boot/EFI
+	grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
+	cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
+	grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
+EOF
 
 # Enable services
-arch-chroot /mnt systemctl enable NetworkManager
+arch-chroot /mnt/bin/sh << EOF
+	systemctl enable NetworkManager
+EOF
 
 # Unmount all partitions and exit live USB.
 umount -a
