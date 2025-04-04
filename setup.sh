@@ -93,7 +93,7 @@ genfstab -U -p /mnt >> /mnt/etc/fstab
 
 # Enter system and finish setup.
 arch-chroot /mnt curl -LO https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/root.sh
-arch-chroot /mnt sh root.sh
+arch-chroot /mnt sh root.sh $DISK
 
 # Unmount all partitions and exit live USB.
 umount -a

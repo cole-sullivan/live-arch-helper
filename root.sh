@@ -93,7 +93,7 @@ curl -LO -s https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/mai
 chmod 644 grub
 mv grub /etc/default/grub
 mkdir /boot/EFI
-mount /dev/nvme0n1p1 /boot/EFI
+mount /dev/${1}p1 /boot/EFI
 grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
 cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
 grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
