@@ -143,7 +143,7 @@ done
 installgpu || error "User exited."
 
 # Generate RAM disks
-whiptail --title "Generating RAM disks" \
+whiptail --title "Generating ramdisks" \
 	--infobox "Creating initial ramdisk environment using mkinitcpio." 8 70
 arch-chroot /mnt /bin/sh << EOF
 	rm -f /etc/mkinitcpio.conf
