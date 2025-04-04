@@ -156,7 +156,7 @@ mountpartitions || error "User exited."
 # Install base packages.
 whiptail --title "Installation" \
 	--infobox "Installing base packages to the new root partition." 8 70
-pacstrap -i /mnt base >/dev/null
+(echo ""; echo "") | pacstrap -i /mnt base &>/dev/null
 
 # Generate fstab.
 genfstab -U -p /mnt >> /mnt/etc/fstab
