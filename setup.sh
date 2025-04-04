@@ -22,6 +22,7 @@ welcomemsg() {
 }
 
 partitiondisk() {
+	# Partition disk into 3 parts
 	whiptail --title "Partition disk" \
 		--infobox "Partitioning $DISK for the installation of Arch Linux." 8 70
 	(echo g; echo w) | fdisk /dev/$DISK &>/dev/null
@@ -29,6 +30,7 @@ partitiondisk() {
 }
 
 formatpartitions() {
+	# Format partitions and encrypt the third partition (where files will be stored)
 	PASSPHRASE1=$(whiptail --nocancel --passwordbox "Enter a passphrase to use to encrypt your filesystem. You will use this passphrase to unlock your machine every time you boot your computer." 10 60 3>&1 1>&2 2>&3 3>&1)
 	PASSPHRASE2=$(whiptail --nocancel --passwordbox "Retype passphrase." 10 60 3>&1 1>&2 2>&3 3>&1)
 	while ! [ "$PASSPHRASE1" = "$PASSPHRASE2" ]; do
@@ -173,10 +175,6 @@ arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
 
 # Enable services
 arch-chroot /mnt systemctl enable NetworkManager
-
-# Enter system and finish setup.
-# arch-chroot /mnt curl -LO https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/root.sh
-# arch-chroot /mnt sh root.sh $DISK
 
 # Unmount all partitions and exit live USB.
 umount -a
