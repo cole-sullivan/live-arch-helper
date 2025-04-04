@@ -20,8 +20,8 @@ welcomemsg() {
 partitiondisk() {
 	whiptail --title "Partition disk" \
 		--infobox "Partitioning $DISK for the installation of Arch Linux." 8 70
-	(echo g; echo w) | fdisk /dev/$DISK >/dev/null 2>&1
-	(echo n; echo 1; echo ""; echo +1G; echo n; echo 2; echo ""; echo +1G; echo n; echo 3; echo ""; echo ""; echo t; echo 3; echo 44; echo w) | fdisk /dev/$DISK >/dev/null 2>&1
+	(echo g; echo w) | fdisk /dev/$DISK &>/dev/null
+	(echo n; echo 1; echo ""; echo +1G; echo n; echo 2; echo ""; echo +1G; echo n; echo 3; echo ""; echo ""; echo t; echo 3; echo 44; echo w) | fdisk /dev/$DISK &>/dev/null
 }
 
 formatpartitions() {
@@ -59,6 +59,76 @@ mountpartitions() {
 	mount /dev/volgroup0/lv_home /mnt/home
 }
 
+setpass() {
+	PASSWORD1=$(whiptail --nocancel --passwordbox "Enter root password." 10 60 3>&1 1>&2 2>&3 3>&1)
+	PASSWORD2=$(whiptail --nocancel --passwordbox "Retype password." 10 60 3>&1 1>&2 2>&3 3>&1)
+	while ! [ "$PASSWORD1" = "$PASSWORD2" ]; do
+		unset PASSWORD2
+		PASSWORD1=$(whiptail --nocancel --passwordbox "Passwords do not match.\\n\\nEnter password again." 10 60 3>&1 1>&2 2>&3 3>&1)
+		PASSWORD2=$(whiptail --nocancel --passwordbox "Retype password." 10 60 3>&1 1>&2 2>&3 3>&1)
+	done
+	echo "$PASSWORD1" | arch-chroot /mnt passwd -s
+}
+
+installgpu() {
+	GPUBRAND=$(whiptail --title "GPU driver" --radiolist \
+		"Use the arrow keys and space bar to select your GPU brand, then press Return or <OK> to continue." 20 78 4 \
+		"Intel" "Install mesa & intel-media-driver" ON \
+		"AMD" "Install mesa & libva-mesa-driver" OFF \
+		"Nvidia" "Install nvidia & nvidia-utils" OFF 3>&1 1>&2 2>&3 3>&1) || error "User exited."
+	case "$GPUBRAND" in
+		"Intel")
+			whiptail --title "Installation" \
+				--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
+			pacstrap -i /mnt mesa intel-media-driver >/dev/null
+			;;
+		"AMD")
+	 		whiptail --title "Installation" \
+				--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
+			pacstrap -i /mnt mesa libva-mesa-driver >/dev/null
+			;;
+		"Nvidia")
+			whiptail --title "Installation" \
+				--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
+			pacstrap -i /mnt nvidia nvidia-utils >/dev/null
+			;;
+	esac
+}
+
+genramdisks() {
+	whiptail --title "Configuring bootloader" \
+		--infobox "Setting up GRUB, the bootloader for this system." 8 70
+	arch-chroot rm -f /etc/mkinitcpio.conf
+	arch-chroot curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
+	arch-chroot chmod 644 mkinitcpio.conf
+	arch-chroot mv mkinitcpio.conf /etc/mkinitcpio.conf
+	arch-chroot mkinitcpio -p linux &>/dev/null
+}
+
+setlocale() {
+	whiptail --title "Setting locale" \
+		--infobox "Setting the system locale." 8 70
+	arch-chroot rm -f /etc/locale.gen
+	arch-chroot curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
+	arch-chroot chmod 644 locale.gen
+	arch-chroot mv locale.gen /etc/locale.gen
+	arch-chroot locale-gen
+}
+
+initgrub() {
+	whiptail --title "Setting up bootloader" \
+		--infobox "Configuring GRUB, the system bootloader, for use." 8 70
+	arch-chroot rm -f /etc/default/grub
+	arch-chroot curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/grub
+	arch-chroot chmod 644 grub
+	arch-chroot mv grub /etc/default/grub
+	arch-chroot mkdir /boot/EFI
+	arch-chroot mount /dev/${1}p1 /boot/EFI
+	arch-chroot grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
+	arch-chroot cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
+	arch-chroot grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
+}
+
 finalize() {
         whiptail --title "All done!" \
 		--msgbox "Provided there were no hidden errors, the script completed successfully and Arch Linux has been installed.\\n\\nSelect <OK> to reboot the machine.\\n\\n" 13 80
@@ -91,9 +161,34 @@ pacstrap -i /mnt base >/dev/null
 # Generate fstab.
 genfstab -U -p /mnt >> /mnt/etc/fstab
 
+# Set password
+setpass || error "User exited."
+
+# Install additional packages, the kernel, and firmware
+for PACKAGE in base-devel dosfstools grub efibootmgr lvm2 mtools neovim networkmanager os-prober sof-firmware sudo linux linux-headers linux-firmware; do
+	whiptail --title "Installation" \
+		--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
+	pacstrap -i /mnt "$PACKAGE" >/dev/null
+done
+
+# Install GPU driver
+installgpu || error "User exited."
+
+# Generate RAM disks
+genramdisks || error "User exited."
+
+# Set locale
+setlocale || error "User exited."
+
+# Setting up GRUB
+initgrub || error "User exited."
+
+# Enable services
+arch-chroot systemctl enable NetworkManager
+
 # Enter system and finish setup.
-arch-chroot /mnt curl -LO https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/root.sh
-arch-chroot /mnt sh root.sh $DISK
+# arch-chroot /mnt curl -LO https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/root.sh
+# arch-chroot /mnt sh root.sh $DISK
 
 # Unmount all partitions and exit live USB.
 umount -a
