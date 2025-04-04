@@ -156,7 +156,7 @@ arch-chroot /mnt rm -f /etc/locale.gen
 arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
 arch-chroot /mnt chmod 644 locale.gen
 arch-chroot /mnt mv locale.gen /etc/locale.gen
-arch-chroot /mnt locale-gen
+arch-chroot /mnt locale-gen &>/dev/null
 
 # Set up GRUB
 whiptail --title "Setting up bootloader" \
