@@ -39,7 +39,7 @@ formatpartitions() {
 	whiptail --title "Format disk" \
 		--infobox "Formatting and encrypting $DISK." 8 70
 	mkfs.fat -F32 /dev/${DISK}p1
-	mkfs.ext4 /dev/${DISK}p2
+	mkfs.ext4 -F /dev/${DISK}p2
 	echo -n "$PASSPHRASE1" | cryptsetup luksFormat /dev/${DISK}p3 -d - &>/dev/null
 	echo -n "$PASSPHRASE1" | cryptsetup open --type luks /dev/${DISK}p3 lvm -d -
 	pvcreate /dev/mapper/lvm
@@ -123,7 +123,7 @@ initgrub() {
 	arch-chroot /mnt chmod 644 grub
 	arch-chroot /mnt mv grub /etc/default/grub
 	arch-chroot /mnt mkdir /boot/EFI
-	arch-chroot /mnt mount /dev/${1}p1 /boot/EFI
+	arch-chroot /mnt mount /dev/"$1"p1 /boot/EFI
 	arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
 	arch-chroot /mnt cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
 	arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
