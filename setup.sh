@@ -2,6 +2,10 @@
 
 ### FUNCTIONS ###
 
+installpkg() {
+	arch-chroot /mnt pacman --noconfirm --needed -S "$1" &>/dev/null
+}
+
 error() {
 	# Log to stderr and exit with failure.
 	printf "%s\n" "$1" >&2
@@ -76,21 +80,17 @@ installgpu() {
 		"Intel" "Install mesa & intel-media-driver" ON \
 		"AMD" "Install mesa & libva-mesa-driver" OFF \
 		"Nvidia" "Install nvidia & nvidia-utils" OFF 3>&1 1>&2 2>&3 3>&1) || error "User exited."
+  	whiptail --title "Installation" \
+				--infobox "Installing $GPUBRAND GPU drivers for Arch." 8 70
 	case "$GPUBRAND" in
 		"Intel")
-			whiptail --title "Installation" \
-				--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
-			pacstrap -i /mnt mesa intel-media-driver >/dev/null
+    			arch-chroot /mnt pacman --noconfirm --needed -S mesa intel-media-driver &>/dev/null
 			;;
 		"AMD")
-	 		whiptail --title "Installation" \
-				--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
-			pacstrap -i /mnt mesa libva-mesa-driver >/dev/null
+  			arch-chroot /mnt pacman --noconfirm --needed -S mesa libva-mesa-driver &>/dev/null
 			;;
 		"Nvidia")
-			whiptail --title "Installation" \
-				--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
-			pacstrap -i /mnt nvidia nvidia-utils >/dev/null
+  			arch-chroot /mnt pacman --noconfirm --needed -S nvidia nvidia-utils &>/dev/null
 			;;
 	esac
 }
@@ -98,35 +98,35 @@ installgpu() {
 genramdisks() {
 	whiptail --title "Configuring bootloader" \
 		--infobox "Setting up GRUB, the bootloader for this system." 8 70
-	arch-chroot rm -f /etc/mkinitcpio.conf
-	arch-chroot curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
-	arch-chroot chmod 644 mkinitcpio.conf
-	arch-chroot mv mkinitcpio.conf /etc/mkinitcpio.conf
-	arch-chroot mkinitcpio -p linux &>/dev/null
+	arch-chroot /mnt rm -f /etc/mkinitcpio.conf
+	arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
+	arch-chroot /mnt chmod 644 mkinitcpio.conf
+	arch-chroot /mnt mv mkinitcpio.conf /etc/mkinitcpio.conf
+	arch-chroot /mnt mkinitcpio -p linux &>/dev/null
 }
 
 setlocale() {
 	whiptail --title "Setting locale" \
 		--infobox "Setting the system locale." 8 70
-	arch-chroot rm -f /etc/locale.gen
-	arch-chroot curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
-	arch-chroot chmod 644 locale.gen
-	arch-chroot mv locale.gen /etc/locale.gen
-	arch-chroot locale-gen
+	arch-chroot /mnt rm -f /etc/locale.gen
+	arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
+	arch-chroot /mnt chmod 644 locale.gen
+	arch-chroot /mnt mv locale.gen /etc/locale.gen
+	arch-chroot /mnt locale-gen
 }
 
 initgrub() {
 	whiptail --title "Setting up bootloader" \
 		--infobox "Configuring GRUB, the system bootloader, for use." 8 70
-	arch-chroot rm -f /etc/default/grub
-	arch-chroot curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/grub
-	arch-chroot chmod 644 grub
-	arch-chroot mv grub /etc/default/grub
-	arch-chroot mkdir /boot/EFI
-	arch-chroot mount /dev/${1}p1 /boot/EFI
-	arch-chroot grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
-	arch-chroot cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
-	arch-chroot grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
+	arch-chroot /mnt rm -f /etc/default/grub
+	arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/grub
+	arch-chroot /mnt chmod 644 grub
+	arch-chroot /mnt mv grub /etc/default/grub
+	arch-chroot /mnt mkdir /boot/EFI
+	arch-chroot /mnt mount /dev/${1}p1 /boot/EFI
+	arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
+	arch-chroot /mnt cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
+	arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
 }
 
 finalize() {
@@ -168,7 +168,7 @@ setpass || error "User exited."
 for PACKAGE in base-devel dosfstools grub efibootmgr lvm2 mtools neovim networkmanager os-prober sof-firmware sudo linux linux-headers linux-firmware; do
 	whiptail --title "Installation" \
 		--infobox "Installing \`$PACKAGE\` which is a required package." 8 70
-	pacstrap -i /mnt "$PACKAGE" >/dev/null
+	installpkg "$PACKAGE"
 done
 
 # Install GPU driver
@@ -184,7 +184,7 @@ setlocale || error "User exited."
 initgrub || error "User exited."
 
 # Enable services
-arch-chroot systemctl enable NetworkManager
+arch-chroot /mnt systemctl enable NetworkManager
 
 # Enter system and finish setup.
 # arch-chroot /mnt curl -LO https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/root.sh
