@@ -42,7 +42,7 @@ formatpartitions() {
 		--infobox "Formatting and encrypting $DISK." 8 70
 	mkfs.fat -F32 /dev/${DISK}p1 >/dev/null
 	mkfs.ext4 -F /dev/${DISK}p2 &>/dev/null
-	echo -n "$PASSPHRASE1" | cryptsetup luksFormat /dev/${DISK}p3 -d -
+	echo -n "$PASSPHRASE1" | cryptsetup luksFormat /dev/${DISK}p3 -d - &>/dev/null
 	echo -n "$PASSPHRASE1" | cryptsetup open --type luks /dev/${DISK}p3 lvm -d -
 	pvcreate /dev/mapper/lvm >/dev/null
 	vgcreate volgroup0 /dev/mapper/lvm >/dev/null
@@ -143,8 +143,8 @@ done
 installgpu || error "User exited."
 
 # Generate RAM disks
-whiptail --title "Configuring bootloader" \
-	--infobox "Setting up GRUB, the bootloader for this system." 8 70
+whiptail --title "Generating RAM disks" \
+	--infobox "Creating initial ramdisk environment using mkinitcpio." 8 70
 arch-chroot /mnt /bin/sh << EOF
 	rm -f /etc/mkinitcpio.conf
 	curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
