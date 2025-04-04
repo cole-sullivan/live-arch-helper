@@ -38,19 +38,19 @@ formatpartitions() {
 	done
 	whiptail --title "Format disk" \
 		--infobox "Formatting and encrypting $DISK." 8 70
-	mkfs.fat -F32 /dev/${DISK}p1
-	mkfs.ext4 -F /dev/${DISK}p2
+	mkfs.fat -F32 /dev/${DISK}p1 &>/dev/null
+	mkfs.ext4 -F /dev/${DISK}p2 &>/dev/null
 	echo -n "$PASSPHRASE1" | cryptsetup luksFormat /dev/${DISK}p3 -d - &>/dev/null
-	echo -n "$PASSPHRASE1" | cryptsetup open --type luks /dev/${DISK}p3 lvm -d -
-	pvcreate /dev/mapper/lvm
-	vgcreate volgroup0 /dev/mapper/lvm
-	lvcreate -L 30GB volgroup0 -n lv_root
-	lvcreate -l 100%FREE volgroup0 -n lv_home
-	modprobe dm_mod
-	vgscan
-	vgchange -ay
-	mkfs.ext4 /dev/volgroup0/lv_root
-	mkfs.ext4 /dev/volgroup0/lv_home
+	echo -n "$PASSPHRASE1" | cryptsetup open --type luks /dev/${DISK}p3 lvm -d - &>/dev/null
+	pvcreate /dev/mapper/lvm &>/dev/null
+	vgcreate volgroup0 /dev/mapper/lvm &>/dev/null
+	lvcreate -L 30GB volgroup0 -n lv_root &>/dev/null
+	lvcreate -l 100%FREE volgroup0 -n lv_home &>/dev/null
+	modprobe dm_mod &>/dev/null
+	vgscan &>/dev/null
+	vgchange -ay &>/dev/null
+	mkfs.ext4 /dev/volgroup0/lv_root &>/dev/null
+	mkfs.ext4 /dev/volgroup0/lv_home &>/dev/null
 }
 
 mountpartitions() {
@@ -93,40 +93,6 @@ installgpu() {
   			arch-chroot /mnt pacman --noconfirm --needed -S nvidia nvidia-utils &>/dev/null
 			;;
 	esac
-}
-
-genramdisks() {
-	whiptail --title "Configuring bootloader" \
-		--infobox "Setting up GRUB, the bootloader for this system." 8 70
-	arch-chroot /mnt rm -f /etc/mkinitcpio.conf
-	arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
-	arch-chroot /mnt chmod 644 mkinitcpio.conf
-	arch-chroot /mnt mv mkinitcpio.conf /etc/mkinitcpio.conf
-	arch-chroot /mnt mkinitcpio -p linux &>/dev/null
-}
-
-setlocale() {
-	whiptail --title "Setting locale" \
-		--infobox "Setting the system locale." 8 70
-	arch-chroot /mnt rm -f /etc/locale.gen
-	arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
-	arch-chroot /mnt chmod 644 locale.gen
-	arch-chroot /mnt mv locale.gen /etc/locale.gen
-	arch-chroot /mnt locale-gen
-}
-
-initgrub() {
-	whiptail --title "Setting up bootloader" \
-		--infobox "Configuring GRUB, the system bootloader, for use." 8 70
-	arch-chroot /mnt rm -f /etc/default/grub
-	arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/grub
-	arch-chroot /mnt chmod 644 grub
-	arch-chroot /mnt mv grub /etc/default/grub
-	arch-chroot /mnt mkdir /boot/EFI
-	arch-chroot /mnt mount /dev/"$1"p1 /boot/EFI
-	arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
-	arch-chroot /mnt cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
-	arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
 }
 
 finalize() {
@@ -175,13 +141,35 @@ done
 installgpu || error "User exited."
 
 # Generate RAM disks
-genramdisks || error "User exited."
+whiptail --title "Configuring bootloader" \
+	--infobox "Setting up GRUB, the bootloader for this system." 8 70
+arch-chroot /mnt rm -f /etc/mkinitcpio.conf
+arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/mkinitcpio.conf
+arch-chroot /mnt chmod 644 mkinitcpio.conf
+arch-chroot /mnt mv mkinitcpio.conf /etc/mkinitcpio.conf
+arch-chroot /mnt mkinitcpio -p linux &>/dev/null
 
 # Set locale
-setlocale || error "User exited."
+whiptail --title "Setting locale" \
+	--infobox "Setting the system locale." 8 70
+arch-chroot /mnt rm -f /etc/locale.gen
+arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/locale.gen
+arch-chroot /mnt chmod 644 locale.gen
+arch-chroot /mnt mv locale.gen /etc/locale.gen
+arch-chroot /mnt locale-gen
 
-# Setting up GRUB
-initgrub || error "User exited."
+# Set up GRUB
+whiptail --title "Setting up bootloader" \
+	--infobox "Configuring GRUB, the system bootloader, for use." 8 70
+arch-chroot /mnt rm -f /etc/default/grub
+arch-chroot /mnt curl -LOs https://raw.githubusercontent.com/cole-sullivan/live-arch-helper/main/grub
+arch-chroot /mnt chmod 644 grub
+arch-chroot /mnt mv grub /etc/default/grub
+arch-chroot /mnt mkdir /boot/EFI
+arch-chroot /mnt mount /dev/${DISK}p1 /boot/EFI
+arch-chroot /mnt grub-install --target=x86_64-efi --bootloader-id=grub_uefi --recheck &>/dev/null
+arch-chroot /mnt cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
+arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg &>/dev/null
 
 # Enable services
 arch-chroot /mnt systemctl enable NetworkManager
